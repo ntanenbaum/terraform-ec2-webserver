@@ -45,7 +45,8 @@ tf-destroy:
 
 tf-clean:
 	rm -rf ./.terraform 
-	rm -rf *.out
+	rm -rf ./*.out
+	rm -rf ./.terraform.lock.hcl
 
 help:
 	@grep -E '^[a-zA-Z_-]+:.*?## . *$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-30s\033[0m %s\n", $$1, $$2}'
