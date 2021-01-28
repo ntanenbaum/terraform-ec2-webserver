@@ -1,0 +1,11 @@
+#TF Backend
+terraform {
+    backend "s3" {
+        encrypt        = true
+        bucket         = "tf-state-nt-store01"
+        region         = "us-east-2"
+        key            = "terraform.tfstate"
+        dynamodb_table = "tf-state-lock-dynamo" 
+    }
+}
+

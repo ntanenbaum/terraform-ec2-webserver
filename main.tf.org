@@ -1,0 +1,271 @@
+# Private key 
+resource "tls_private_key" "private_key" {
+  algorithm = "RSA"
+  rsa_bits  = 4096
+}
+
+# AWS keypair
+resource "aws_key_pair" "key_pair" {
+  depends_on = [tls_private_key.private_key]
+  key_name   = var.key_name
+  public_key = tls_private_key.private_key.public_key_openssh
+}
+
+# Save privateKey
+resource "local_file" "saveKey" {
+  depends_on = [aws_key_pair.key_pair]
+  content = tls_private_key.private_key.private_key_pem
+  filename = "${var.base_path}${var.key_name}"
+  directory_permission = 0755
+  file_permission = 0600
+}
+
+# IAM Roles and policies
+resource "aws_iam_role" "nt_iam_log_role" {
+  name = "${var.prefix}-flow-log-role"
+  assume_role_policy = data.template_file.nt_assume_role_policy.rendered
+}
+
+resource "aws_iam_role_policy" "nt_log_policy" {
+  name = "${var.prefix}-flow-log-policy"
+  role = aws_iam_role.nt_iam_log_role.id
+  policy = data.template_file.nt_log_policy.rendered
+}
+
+# Cloudwatch log group
+resource "aws_cloudwatch_log_group" "nt_flow_log_group" {
+  name = var.log_group_name == "" ? local.default_log_group_name : var.log_group_name
+}
+
+# VPC
+resource "aws_vpc" "ntvpc" {
+  cidr_block       = "10.0.0.0/16"
+  instance_tenancy = "default"
+  enable_dns_support = "true"
+  enable_dns_hostnames = "true"
+
+  tags = {
+    Name = "nt-vpc01"
+  }
+}
+
+# Public Subnet
+resource "aws_subnet" "ntpubsubnet" {
+  depends_on = [aws_vpc.ntvpc]
+
+  availability_zone = "us-east-2a"
+  vpc_id     = aws_vpc.ntvpc.id
+  cidr_block = "10.0.0.0/24"
+  map_public_ip_on_launch = "true"
+
+  tags = {
+    Name = "nt-pub-subnet01"
+  }
+}
+
+# Private Subnet
+resource "aws_subnet" "ntprivsubnet" {
+  depends_on = [aws_vpc.ntvpc]
+
+  availability_zone = "us-east-2a"
+  vpc_id     = aws_vpc.ntvpc.id
+  cidr_block = "10.0.1.0/24"
+
+  tags = {
+    Name = "nt-priv-subnet01"
+  }
+}
+
+# Network Traffic Flow Logs
+resource "aws_flow_log" "ntvpcflowlog" {
+  log_destination = aws_cloudwatch_log_group.nt_flow_log_group.arn
+  iam_role_arn    = aws_iam_role.nt_iam_log_role.arn
+  vpc_id          = aws_vpc.ntvpc.id
+  traffic_type    = var.traffic_type
+}
+
+# Internet Gateway
+resource "aws_internet_gateway" "ntig" {
+  depends_on = [aws_vpc.ntvpc]
+
+  vpc_id = aws_vpc.ntvpc.id
+
+  tags = {
+    Name = "nt-ig01"
+  }
+}
+
+# Public Route Table | Internet Gateway
+resource "aws_route_table" "ntigrt" {
+  depends_on = [aws_vpc.ntvpc,aws_internet_gateway.ntig]
+
+  vpc_id = aws_vpc.ntvpc.id
+
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_internet_gateway.ntig.id
+  }
+
+  tags = {
+    Name = "nt-igrt01"
+  }
+}
+
+# Private Route Table
+resource "aws_route_table" "ntprivrt" {
+  vpc_id = aws_vpc.ntvpc.id
+  tags = {
+    Name = "nt-privrt01"
+  }
+
+  depends_on = [aws_vpc.ntvpc]
+}
+
+# Associate route table to public subnet
+resource "aws_route_table_association" "ntassocrtpubsubnet" {
+  depends_on = [
+    aws_subnet.ntpubsubnet,
+    aws_route_table.ntigrt
+  ]
+  subnet_id      = aws_subnet.ntpubsubnet.id
+  route_table_id = aws_route_table.ntigrt.id
+}
+
+# Associate route table to private subnet
+resource "aws_route_table_association" "ntassocrtprivsubnet" {
+  subnet_id = aws_subnet.ntprivsubnet.id
+  route_table_id = aws_route_table.ntprivrt.id
+
+  depends_on = [aws_subnet.ntprivsubnet, aws_route_table.ntprivrt]
+}
+
+# Bastion Host Security Group
+resource "aws_security_group" "ntsecgrpbh" {
+  depends_on = [aws_vpc.ntvpc]
+
+  name        = "secgrp bastion host"
+  description = "bastion host secgrp"
+  vpc_id      = aws_vpc.ntvpc.id
+
+  ingress {
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+
+  tags = {
+    Name = "bastion_secgrp"
+  }
+
+}
+
+# Webserver Security Group
+resource "aws_security_group" "ntsecgrpwebsvr" {
+  depends_on = [aws_vpc.ntvpc]
+
+  name        = "secgrp webserver"
+  description = "Allow HTTP inbound traffic"
+  vpc_id      = aws_vpc.ntvpc.id
+
+  ingress {
+    description = "Allow TCP HTTP"
+    from_port   = 80
+    to_port     = 80
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+  ingress {
+    description = "Allow TCP HTTPS"
+    from_port   = 443
+    to_port     = 443
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+  ingress {
+    description = "Allow SSH"
+    from_port   = 22
+    to_port     = 22
+    protocol    = "tcp"
+    security_groups = [aws_security_group.ntsecgrpbh.id]
+  }
+
+  egress {
+    from_port   = 0
+    to_port     = 0
+    protocol    = "-1"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+
+  tags = {
+    Name = "websvr_secgrp"
+  }
+}
+
+# Bastion Host ec2 Instance
+resource "aws_instance" "ntbastioninstance" {
+  depends_on = [aws_vpc.ntvpc, aws_subnet.ntprivsubnet]
+
+  ami = data.aws_ami.amazon-linux-2.id
+  availability_zone = "us-east-2a"
+  instance_type = "t2.micro"
+  key_name = var.key_name
+  vpc_security_group_ids = [aws_security_group.ntsecgrpbh.id]
+  subnet_id = aws_subnet.ntpubsubnet.id
+  disable_api_termination = false
+  monitoring = false
+  tags = {
+      Name = "nt_bastion_host"
+  }
+
+  provisioner "file" {
+    source      = "/tmp/terraform_iac/ec2Key.pem"
+    destination = "/home/ec2-user/ec2Key.pem"
+
+    connection {
+    type     = "ssh"
+    user     = "ec2-user"
+    private_key = tls_private_key.private_key.private_key_pem
+    host     = aws_instance.ntbastioninstance.public_ip
+    }
+  }
+}
+
+# Webserver ec2 Instance
+resource "aws_instance" "ntwebsvr" {
+  depends_on = [aws_vpc.ntvpc, aws_subnet.ntpubsubnet]
+  availability_zone = "us-east-2a"
+  ami = data.aws_ami.amazon-linux-2.id
+  instance_type = "t2.micro"
+  key_name = var.key_name
+  vpc_security_group_ids = [aws_security_group.ntsecgrpwebsvr.id]
+  subnet_id = aws_subnet.ntpubsubnet.id
+  disable_api_termination = false
+  monitoring = false
+  user_data = <<EOF
+            #!/bin/bash
+            yum update -y
+            yum install httpd -y
+            echo "<p> Hello there! My new ec2 webserver instance is running! YAY! </p>" >> /var/www/html/index.html
+            systemctl restart httpd.service
+            systemctl enable httpd.service
+  EOF
+
+  tags = {
+      Name = "ntwebserver01"
+  }
+}
+
