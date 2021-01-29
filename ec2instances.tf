@@ -35,13 +35,13 @@ resource "aws_instance" "ntbastioninstance" {
 
 # Webserver ec2 Instance
 resource "aws_instance" "ntwebsvr" {
-  depends_on = [aws_vpc.ntvpc, aws_subnet.ntpubsubnet]
+  depends_on = [aws_security_group.ntsecgrpwebsvr, aws_nat_gateway.ntnatgateway, aws_route_table_association.ntassocroutetabletoprivsubnet]
   availability_zone = "us-east-2a"
   ami = data.aws_ami.amazon-linux-2.id
   instance_type = "t2.micro"
   key_name = var.key_name
   vpc_security_group_ids = [aws_security_group.ntsecgrpwebsvr.id]
-  subnet_id = aws_subnet.ntpubsubnet.id
+  subnet_id = aws_subnet.ntprivsubnet.id
   disable_api_termination = false
   monitoring = false
 
@@ -58,4 +58,3 @@ resource "aws_instance" "ntwebsvr" {
             systemctl enable httpd.service
   EOF
 }
-

@@ -37,9 +37,19 @@ resource "aws_subnet" "ntprivsubnet" {
   }
 }
 
+# NAT Subnet
+resource "aws_subnet" "ntnatgateway" {
+  cidr_block = "10.0.2.0/24"
+  vpc_id = aws_vpc.ntvpc.id
+
+  tags = {
+    "Name" = "nt-nat-subnet01"
+  }
+}
+
+# Internet Gateway | NAT
 resource "aws_internet_gateway" "ntig" {
   depends_on = [aws_vpc.ntvpc]
-
   vpc_id = aws_vpc.ntvpc.id
 
   tags = {
@@ -47,12 +57,10 @@ resource "aws_internet_gateway" "ntig" {
   }
 }
 
-# Public Route Table | Internet Gateway
+# Route Table for Internet Gateway
 resource "aws_route_table" "ntigrt" {
   depends_on = [aws_vpc.ntvpc,aws_internet_gateway.ntig]
-
   vpc_id = aws_vpc.ntvpc.id
-
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.ntig.id
@@ -77,7 +85,7 @@ resource "aws_route_table" "ntprivrt" {
 resource "aws_route_table_association" "ntassocrtpubsubnet" {
   depends_on = [
     aws_subnet.ntpubsubnet,
-    aws_route_table.ntigrt
+    aws_route_table.ntigrt,
   ]
   subnet_id      = aws_subnet.ntpubsubnet.id
   route_table_id = aws_route_table.ntigrt.id
@@ -85,9 +93,11 @@ resource "aws_route_table_association" "ntassocrtpubsubnet" {
 
 # Associate route table to private subnet
 resource "aws_route_table_association" "ntassocrtprivsubnet" {
-  subnet_id = aws_subnet.ntprivsubnet.id
-  route_table_id = aws_route_table.ntprivrt.id
-
-  depends_on = [aws_subnet.ntprivsubnet, aws_route_table.ntprivrt]
+  depends_on = [
+    aws_subnet.ntnatgateway,
+    aws_route_table.ntigrt,
+  ]
+  subnet_id = aws_subnet.ntnatgateway.id
+  route_table_id = aws_route_table.ntigrt.id
 }
 
