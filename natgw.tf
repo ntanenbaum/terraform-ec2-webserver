@@ -15,7 +15,7 @@ resource "aws_nat_gateway" "ntnatgateway" {
     aws_eip.ntelasticip,
   ]
   allocation_id = aws_eip.ntelasticip.id
-  subnet_id     = aws_subnet.ntnatgateway.id
+  subnet_id     = aws_subnet.ntpubsubnet.id
 
   tags = {
     Name = "nt-nat-gateway"
@@ -43,6 +43,10 @@ resource "aws_route_table" "ntNATroutetable" {
 
 # Associate route table to private subnet
 resource "aws_route_table_association" "ntassocroutetabletoprivsubnet" {
+  depends_on = [
+    aws_subnet.ntprivsubnet,
+    aws_route_table.ntNATroutetable,
+  ]
   subnet_id      = aws_subnet.ntprivsubnet.id
   route_table_id = aws_route_table.ntNATroutetable.id
 }
