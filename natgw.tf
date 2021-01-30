@@ -1,9 +1,9 @@
 # elastic ip
 resource "aws_eip" "ntelasticip" {
   depends_on = [
-    aws_route_table_association.ntassocrtpubsubnet
+    aws_internet_gateway.ntig
   ]
-  vpc      = true
+  vpc                       = true
 
   tags = {
     Name = "nt-elastic-ip"

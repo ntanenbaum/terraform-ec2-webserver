@@ -59,7 +59,7 @@ resource "aws_internet_gateway" "ntig" {
   }
 }
 
-# Route Table for Internet Gateway
+# Public Route Table | Internet Gateway
 resource "aws_route_table" "ntigrt" {
   depends_on = [aws_vpc.ntvpc,aws_internet_gateway.ntig]
   vpc_id = aws_vpc.ntvpc.id
@@ -76,6 +76,11 @@ resource "aws_route_table" "ntigrt" {
 # Private Route Table
 resource "aws_route_table" "ntprivrt" {
   vpc_id = aws_vpc.ntvpc.id
+  route {
+    cidr_block = "0.0.0.0/0"
+    gateway_id = aws_nat_gateway.ntnatgateway.id
+  }
+
   tags = {
     Name = "nt-privrt01"
   }

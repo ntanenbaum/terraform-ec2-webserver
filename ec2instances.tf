@@ -10,6 +10,7 @@ resource "aws_instance" "ntbastioninstance" {
   subnet_id = aws_subnet.ntpubsubnet.id
   disable_api_termination = false
   monitoring = false
+  user_data = file("userdatabast.sh")
 
   tags = {
       Name = "nt_bastion_host"
@@ -26,11 +27,6 @@ resource "aws_instance" "ntbastioninstance" {
     host     = aws_instance.ntbastioninstance.public_ip
     }
   }
-
-  user_data = <<EOF
-            #!/bin/bash
-            chmod 600 /home/ec2-user/ec2Key.pem
-  EOF
 }
 
 # Webserver ec2 Instance
@@ -44,18 +40,10 @@ resource "aws_instance" "ntwebsvr" {
   subnet_id = aws_subnet.ntprivsubnet.id
   disable_api_termination = false
   monitoring = false
+  user_data = file("userdataweb.sh")
 
   tags = {
       Name = "ntwebserver01"
   }
-
-  user_data = <<EOF
-            #!/bin/bash
-            yum update -y
-            yum install httpd -y
-            echo "<p> Hello there! My new ec2 webserver instance is running! YAY! </p>" >> /var/www/html/index.html
-            systemctl restart httpd.service
-            systemctl enable httpd.service
-  EOF
 }
 
