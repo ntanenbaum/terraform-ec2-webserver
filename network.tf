@@ -40,7 +40,7 @@ resource "aws_subnet" "ntprivsubnet" {
 }
 
 # NAT Subnet
-resource "aws_subnet" "ntnatgateway" {
+resource "aws_subnet" "ntnatsubnet" {
   cidr_block = "10.0.2.0/24"
   vpc_id = aws_vpc.ntvpc.id
 
@@ -95,10 +95,10 @@ resource "aws_route_table_association" "ntassocrtpubsubnet" {
 # Associate route table to private subnet
 resource "aws_route_table_association" "ntassocrtprivsubnet" {
   depends_on = [
-    aws_subnet.ntnatgateway,
+    aws_subnet.ntnatsubnet,
     aws_route_table.ntigrt,
   ]
-  subnet_id = aws_subnet.ntnatgateway.id
+  subnet_id = aws_subnet.ntnatsubnet.id
   route_table_id = aws_route_table.ntigrt.id
 }
 

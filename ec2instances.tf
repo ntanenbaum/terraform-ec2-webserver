@@ -42,7 +42,6 @@ resource "aws_instance" "ntwebsvr" {
   key_name = var.key_name
   vpc_security_group_ids = [aws_security_group.ntsecgrpwebsvr.id]
   subnet_id = aws_subnet.ntprivsubnet.id
-  associate_public_ip_address = true
   disable_api_termination = false
   monitoring = false
 
