@@ -1,10 +1,10 @@
-# Latest CentOS 7.x AMI
-#data "aws_ami" "centos-linux-7" {
+# Get latest Amazon Linux 2 NAT AMI
+#data "aws_ami" "amazon-linux-2-nat" {
 #  most_recent = true
-#  owners = ["679593333241"]
+#  owners = ["amazon"]
 #  filter {
 #    name   = "name"
-#    values = ["CentOS Linux 7*x86_64*"]
+#    values = ["amzn2-ami-vpc-nat-hvm*"]
 #  }
 #}
 

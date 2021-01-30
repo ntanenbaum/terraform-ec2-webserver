@@ -9,6 +9,18 @@ main -> Public Subnets for basic web server
 
 challenge -> Public|Private Subnets, NAT for basic web server (needs work)
 
+Pre-requisite
+-------------
+Before starting with the project, you should have the following things
+
+```yaml
+1. AWS account (Free-Tier)
+2. IAM user-created
+3. AWS CLI tool installed
+4. Terraform installed
+5. Environment variable set for Terraform
+```
+
 Requirements
 ------------
 
