@@ -1,7 +1,9 @@
 # elastic ip
 resource "aws_eip" "ntelasticip" {
+  depends_on = [
+    aws_route_table_association.ntassocrtpubsubnet
+  ]
   vpc      = true
-#  instance = aws_instance.ntwebsvr.id
 
   tags = {
     Name = "nt-elastic-ip"
@@ -11,8 +13,7 @@ resource "aws_eip" "ntelasticip" {
 # NAT gateway
 resource "aws_nat_gateway" "ntnatgateway" {
   depends_on = [
-    aws_subnet.ntnatgateway,
-    aws_eip.ntelasticip,
+    aws_eip.ntelasticip
   ]
   allocation_id = aws_eip.ntelasticip.id
   subnet_id     = aws_subnet.ntpubsubnet.id
@@ -25,8 +26,7 @@ resource "aws_nat_gateway" "ntnatgateway" {
 # Route table with target as a NAT gateway
 resource "aws_route_table" "ntNATroutetable" {
   depends_on = [
-    aws_vpc.ntvpc,
-    aws_nat_gateway.ntnatgateway,
+    aws_vpc.ntvpc
   ]
 
   vpc_id = aws_vpc.ntvpc.id
@@ -41,11 +41,10 @@ resource "aws_route_table" "ntNATroutetable" {
   }
 }
 
-# Associate route table to private subnet
+# Associate NAT route table to private subnet
 resource "aws_route_table_association" "ntassocroutetabletoprivsubnet" {
   depends_on = [
-    aws_subnet.ntprivsubnet,
-    aws_route_table.ntNATroutetable,
+    aws_route_table.ntNATroutetable
   ]
   subnet_id      = aws_subnet.ntprivsubnet.id
   route_table_id = aws_route_table.ntNATroutetable.id

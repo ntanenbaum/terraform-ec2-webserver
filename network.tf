@@ -18,6 +18,7 @@ resource "aws_subnet" "ntpubsubnet" {
   vpc_id     = aws_vpc.ntvpc.id
   cidr_block = "10.0.0.0/24"
   map_public_ip_on_launch = "true"
+  #availability_zone = "us-east-2a"
 
   tags = {
     Name = "nt-pub-subnet01"
@@ -31,6 +32,7 @@ resource "aws_subnet" "ntprivsubnet" {
   availability_zone = "us-east-2a"
   vpc_id     = aws_vpc.ntvpc.id
   cidr_block = "10.0.1.0/24"
+  #availability_zone = "us-east-2a"
 
   tags = {
     Name = "nt-priv-subnet01"
@@ -47,7 +49,7 @@ resource "aws_subnet" "ntnatgateway" {
   }
 }
 
-# Internet Gateway | NAT
+# Internet Gateway
 resource "aws_internet_gateway" "ntig" {
   depends_on = [aws_vpc.ntvpc]
   vpc_id = aws_vpc.ntvpc.id
@@ -84,8 +86,7 @@ resource "aws_route_table" "ntprivrt" {
 # Associate route table to public subnet
 resource "aws_route_table_association" "ntassocrtpubsubnet" {
   depends_on = [
-    aws_subnet.ntpubsubnet,
-    aws_route_table.ntigrt,
+    aws_route_table.ntigrt
   ]
   subnet_id      = aws_subnet.ntpubsubnet.id
   route_table_id = aws_route_table.ntigrt.id
