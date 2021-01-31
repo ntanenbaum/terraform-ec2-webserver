@@ -21,6 +21,12 @@ Before starting with the project, you should have the following things
 5. Environment variable set for Terraform
 ```
 
+Export Environment variables for keys instead of variables - more secure
+``bash
+$ export AWS_ACCESS_KEY_ID=EXAMPLE
+$ export AWS_SECRET_ACCESS_KEY=xxxxxxxxxx
+```
+
 Requirements
 ------------
 
