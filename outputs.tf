@@ -1,4 +1,4 @@
-output "websvr_nat_gw_ip" {
+output "websvr_eip" {
   value = aws_eip.ntelasticip.public_ip
 }
 
@@ -7,7 +7,7 @@ output "websvr_private_ip" {
   value       = aws_instance.ntwebsvr.*.private_ip
 }
 
-#output "websvr_pubic_ip" {
+#output "websvr_public_ip" {
 #  description = "List public IP address assigned to the webserver instance"
 #  value       = aws_instance.ntwebsvr.*.public_ip
 #}

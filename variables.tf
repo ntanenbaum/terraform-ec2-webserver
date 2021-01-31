@@ -19,6 +19,22 @@ variable "traffic_type" {
   description = "https://www.terraform.io/docs/providers/aws/r/flow_log.html#traffic_type"
 }
 
+#AWS authentication variables
+#variable "aws_access_key" {
+#  type = string
+#  description = "AWS Access Key"
+#}
+
+#variable "aws_secret_key" {
+#  type = string
+#  description = "AWS Secret Key"
+#}
+
+#variable "aws_key_pair" {
+#  type = string
+#  description = "AWS Key Pair"
+#}
+
 # Workaround for not being able to do interpolation in variable defaults
 # https://github.com/hashicorp/terraform/issues/4084
 locals {

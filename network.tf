@@ -14,11 +14,10 @@ resource "aws_vpc" "ntvpc" {
 resource "aws_subnet" "ntpubsubnet" {
   depends_on = [aws_vpc.ntvpc]
 
-  availability_zone = "us-east-2a"
+  #availability_zone = "us-east-2a"
   vpc_id     = aws_vpc.ntvpc.id
   cidr_block = "10.0.0.0/24"
   map_public_ip_on_launch = "true"
-  #availability_zone = "us-east-2a"
 
   tags = {
     Name = "nt-pub-subnet01"
@@ -29,10 +28,9 @@ resource "aws_subnet" "ntpubsubnet" {
 resource "aws_subnet" "ntprivsubnet" {
   depends_on = [aws_vpc.ntvpc]
 
-  availability_zone = "us-east-2a"
+  #availability_zone = "us-east-2b"
   vpc_id     = aws_vpc.ntvpc.id
   cidr_block = "10.0.1.0/24"
-  #availability_zone = "us-east-2a"
 
   tags = {
     Name = "nt-priv-subnet01"
@@ -40,14 +38,27 @@ resource "aws_subnet" "ntprivsubnet" {
 }
 
 # NAT Subnet
-resource "aws_subnet" "ntnatsubnet" {
-  cidr_block = "10.0.2.0/24"
-  vpc_id = aws_vpc.ntvpc.id
+#resource "aws_subnet" "ntnatsubnet" {
+#  cidr_block = "10.0.2.0/24"
+#  vpc_id = aws_vpc.ntvpc.id
+#
+#  tags = {
+#    "Name" = "nt-nat-subnet01"
+#  }
+#}
 
-  tags = {
-    "Name" = "nt-nat-subnet01"
-  }
-}
+# NAT gateway
+#resource "aws_nat_gateway" "ntnatgateway" {
+#  depends_on = [
+#    aws_eip.ntelasticip
+#  ]
+#  allocation_id = aws_eip.ntelasticip.id
+#  subnet_id     = aws_subnet.ntprivsubnet.id
+#
+#  tags = {
+#    Name = "nt-nat-gateway"
+#  }
+#}
 
 # Internet Gateway
 resource "aws_internet_gateway" "ntig" {
@@ -78,7 +89,7 @@ resource "aws_route_table" "ntprivrt" {
   vpc_id = aws_vpc.ntvpc.id
   route {
     cidr_block = "0.0.0.0/0"
-    gateway_id = aws_nat_gateway.ntnatgateway.id
+    gateway_id = aws_internet_gateway.ntig.id
   }
 
   tags = {
@@ -100,10 +111,9 @@ resource "aws_route_table_association" "ntassocrtpubsubnet" {
 # Associate route table to private subnet
 resource "aws_route_table_association" "ntassocrtprivsubnet" {
   depends_on = [
-    aws_subnet.ntnatsubnet,
-    aws_route_table.ntigrt,
+    aws_route_table.ntigrt
   ]
-  subnet_id = aws_subnet.ntnatsubnet.id
+  subnet_id = aws_subnet.ntprivsubnet.id
   route_table_id = aws_route_table.ntigrt.id
 }
 
