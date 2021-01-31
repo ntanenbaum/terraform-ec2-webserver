@@ -1,13 +1,13 @@
 terraform-ec2-webserver
 =======================
-Terraform module(s) which creates VPC, Public|Private Subnets, Security Groups, NATs,
+Terraform module(s) which creates VPC, Public|Private Subnets, Security Groups, EIP,
 Internet GWs, Route Tables, Route Associations, and EC2 bastion|web instance on AWS.
 
 Branches
 --------
 main -> Public Subnets for basic web server
 
-challenge -> Public|Private Subnets, NAT for basic web server (needs work)
+challenge -> Public|Private Subnets, NAT for basic web server (in progress...)
 
 Pre-requisite
 -------------
