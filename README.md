@@ -11,7 +11,7 @@ challenge -> Public|Private Subnets, NAT for basic web server (in progress...)
 
 Diagram
 -------
-![Layout](./webserver_elb.png)
+![](./webserver_elb.png)
 
 Pre-requisite
 -------------
