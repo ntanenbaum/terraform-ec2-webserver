@@ -1,18 +1,18 @@
 # Bastion Host ec2 Instance
 resource "aws_instance" "ntbastioninstance" {
-  depends_on = [aws_vpc.ntvpc, aws_subnet.ntprivsubnet]
+  depends_on = [aws_vpc.ntvpc, aws_subnet.ntvpc_private_sn]
 
   ami = data.aws_ami.amazon-linux-2.id
   #availability_zone = "us-east-2a"
   instance_type = "t2.micro"
   key_name = var.key_name
-  vpc_security_group_ids = [aws_security_group.ntsecgrpbh.id]
-  subnet_id = aws_subnet.ntpubsubnet.id
+  vpc_security_group_ids = [aws_security_group.ntvpc_bastserver_sg.id]
+  subnet_id = aws_subnet.ntvpc_public_sn.id
   disable_api_termination = false
   monitoring = false
 
   tags = {
-      Name = "nt_bastion_host"
+      Name = "nt-bastion-host"
   }
 
   provisioner "file" {
@@ -34,7 +34,7 @@ resource "aws_instance" "ntbastioninstance" {
 }
 
 # Elastic ip
-resource "aws_eip" "ntelasticip" {
+resource "aws_eip" "ntvpc_public_sn_ng_elastic_ip" {
   vpc                       = true
 
   tags = {
@@ -44,25 +44,25 @@ resource "aws_eip" "ntelasticip" {
 
 # Webserver ec2 Instance
 resource "aws_instance" "ntwebsvr" {
-  depends_on = [aws_vpc.ntvpc, aws_security_group.ntsecgrpwebsvr]
+  depends_on = [aws_vpc.ntvpc, aws_security_group.ntvpc_webserver_sg]
   ami = data.aws_ami.amazon-linux-2.id
   instance_type = "t2.micro"
   key_name = var.key_name
-  vpc_security_group_ids = [aws_security_group.ntsecgrpwebsvr.id]
-  subnet_id = aws_subnet.ntprivsubnet.id
+  vpc_security_group_ids = [aws_security_group.ntvpc_webserver_sg.id]
+  subnet_id = aws_subnet.ntvpc_private_sn.id
   disable_api_termination = false
-  #associate_public_ip_address = true
+  associate_public_ip_address = false
   monitoring = false
   user_data = file("userdataweb.sh")
 
   tags = {
-      Name = "ntwebserver01"
+      Name = "nt-webserver01"
   }
 }
 
 #Associate Elastic IP to Web Server
-resource "aws_eip_association" "ntwebeipassoc" {
-  instance_id = aws_instance.ntwebsvr.id
-  allocation_id = aws_eip.ntelasticip.id
-}
+#resource "aws_eip_association" "ntwebeipassoc" {
+#  instance_id = aws_instance.ntwebsvr.id
+#  allocation_id = aws_eip.ntelasticip.id
+#}
 

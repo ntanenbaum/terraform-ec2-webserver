@@ -1,13 +1,3 @@
-# Get latest Amazon Linux 2 NAT AMI
-#data "aws_ami" "amazon-linux-2-nat" {
-#  most_recent = true
-#  owners = ["amazon"]
-#  filter {
-#    name   = "name"
-#    values = ["amzn2-ami-vpc-nat-hvm*"]
-#  }
-#}
-
 # Get latest Amazon Linux 2 AMI
 data "aws_ami" "amazon-linux-2" {
   most_recent = true
