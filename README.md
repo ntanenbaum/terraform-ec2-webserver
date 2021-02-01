@@ -9,6 +9,10 @@ main -> Public Subnets for basic web server
 
 challenge -> Public|Private Subnets, NAT for basic web server (in progress...)
 
+Diagram
+-------
+![Layout](./webserver_elb.png)
+
 Pre-requisite
 -------------
 Before starting with the project, you should have the following things
