@@ -3,7 +3,6 @@ resource "aws_instance" "ntbastioninstance" {
   depends_on = [aws_vpc.ntvpc, aws_subnet.ntvpc_private_sn]
 
   ami = data.aws_ami.amazon-linux-2.id
-  #availability_zone = "us-east-2a"
   instance_type = "t2.micro"
   key_name = var.key_name
   vpc_security_group_ids = [aws_security_group.ntvpc_bastserver_sg.id]
@@ -35,7 +34,7 @@ resource "aws_instance" "ntbastioninstance" {
 
 # Elastic ip
 resource "aws_eip" "ntvpc_public_sn_ng_elastic_ip" {
-  vpc                       = true
+  vpc  = true
 
   tags = {
     Name = "nt-elastic-ip"
@@ -59,10 +58,4 @@ resource "aws_instance" "ntwebsvr" {
       Name = "nt-webserver01"
   }
 }
-
-#Associate Elastic IP to Web Server
-#resource "aws_eip_association" "ntwebeipassoc" {
-#  instance_id = aws_instance.ntwebsvr.id
-#  allocation_id = aws_eip.ntelasticip.id
-#}
 

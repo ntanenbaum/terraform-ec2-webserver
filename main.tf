@@ -4,15 +4,22 @@ resource "aws_vpc" "ntvpc" {
   instance_tenancy     = "default"
   enable_dns_support   = true
   enable_dns_hostnames = true
+
+  tags = {
+    Name = "nt-vpc01"
+  }
 }
 
-# Create an internet gateway (virtual router that connects a VPC to the internet)
+# Create an internet gateway (router connects a VPC to the internet)
 resource "aws_internet_gateway" "ntvpc_igt" {
   vpc_id = aws_vpc.ntvpc.id
+
+  tags = {
+    Name = "nt-ig01"
+  }
 }
 
-# Route table specifies how packets are forwarded b/w subnets within your VPC, the internet and VPN connection
-# Create a Public Route table associated with custom VPC and allow IpV4 traffic on Internet Gateway
+# Create a Public Route Table associated with VPC and allow traffic to IG
 resource "aws_route_table" "ntvpc_public_rt" {
   vpc_id = aws_vpc.ntvpc.id
 
@@ -20,66 +27,71 @@ resource "aws_route_table" "ntvpc_public_rt" {
     cidr_block = "0.0.0.0/0"
     gateway_id = aws_internet_gateway.ntvpc_igt.id
   }
+
+  tags = {
+    Name = "nt-pubrt01"
+  }
 }
 
-## Public Subnet Starts
-#
-# Create a public subnet , ensure map_public_ip_on_launch is set to true
+# Create a public subnet | map_public_ip_on_launch is true
 resource "aws_subnet" "ntvpc_public_sn" {
   vpc_id                  = aws_vpc.ntvpc.id
   cidr_block              = "10.0.0.0/28"
   availability_zone_id    = "use2-az1"
   map_public_ip_on_launch = true
+
+  tags = {
+    Name = "nt-pub-subnet01"
+  }
 }
 
-# Associate subnet with a internet gateway route
+# Associate subnet with a IG route
 resource "aws_route_table_association" "ntvpc_public_sn_route" {
   subnet_id      = aws_subnet.ntvpc_public_sn.id
   route_table_id = aws_route_table.ntvpc_public_rt.id
 }
 
-# Generate an Elastic IP
-#resource "aws_eip" "ntvpc_public_sn_ng_elastic_ip" {
-#}
-
-# Create a Network Address Translation (NAT) Gateway on Public Subnet
-# Associate to Public Subnet & an Elastic IP Address
+# Create a NAT Gateway on Public Subnet
+# Associate to Public Subnet and the Elastic IP Address
 resource "aws_nat_gateway" "ntvpc_public_sn_ng" {
   allocation_id = aws_eip.ntvpc_public_sn_ng_elastic_ip.id
   subnet_id     = aws_subnet.ntvpc_public_sn.id
 }
-## Public Subnet Ends
-#
-## Private Subnet Starts
 
-# Create a private subnet
+# Create a Private Subnet
 resource "aws_subnet" "ntvpc_private_sn" {
   vpc_id               = aws_vpc.ntvpc.id
   cidr_block           = "10.0.0.16/28"
   availability_zone_id = "use2-az1"
+
+  tags = {
+    Name = "nt-priv-subnet01"
+  }
 }
 
 # Create a Private Route table
 resource "aws_route_table" "ntvpc_private_rt" {
   vpc_id = aws_vpc.ntvpc.id
+
+  tags = {
+    Name = "nt-privrt01"
+  }
 }
 
-# Add a Route in Private Route Table to allow IpV4 traffic using route to NAT Gateway 
+# Add a Route in the Private Route Table to allow traffic utilizing the route to NAT Gateway 
 resource "aws_route" "ntvpc_private_sn_internet_access" {
   route_table_id         = aws_route_table.ntvpc_private_rt.id
   destination_cidr_block = "0.0.0.0/0"
   nat_gateway_id         = aws_nat_gateway.ntvpc_public_sn_ng.id
 }
 
-# Associate subnet with a internet gateway route
+# Associate Private Subnet with a IG route
 resource "aws_route_table_association" "ntvpc_private_sn_route" {
   subnet_id      = aws_subnet.ntvpc_private_sn.id
   route_table_id = aws_route_table.ntvpc_private_rt.id
 }
 
-## Private Subnet Ends
-
-# Create a security group to allow web traffic to/from instances running on private / public subnets in our custom VPC
+# Create web server SG allowing web traffic to/from web instance running on Private|Public Subnets in VPC
 resource "aws_security_group" "ntvpc_webserver_sg" {
   name        = "ntvpc_webserver_sg"
   description = "Allow SSH & HTTP inbound traffic"
@@ -99,6 +111,7 @@ resource "aws_security_group" "ntvpc_webserver_sg" {
     from_port = 80
     to_port   = 80
     protocol  = "tcp"
+    #cidr_blocks = ["0.0.0.0/0"]
     cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
 
@@ -108,10 +121,13 @@ resource "aws_security_group" "ntvpc_webserver_sg" {
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
   }
+
+  tags = {
+    Name = "nt_websvr_secgrp"
+  }
 }
 
-# Create Bastion Server security group to connect to webserver
-# Bastion Host Security Group
+# Create Bastion Server security group to connect to webserver to run commands
 resource "aws_security_group" "ntvpc_bastserver_sg" {
   depends_on = [aws_vpc.ntvpc]
 
@@ -124,7 +140,7 @@ resource "aws_security_group" "ntvpc_bastserver_sg" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32", "10.0.0.0/28", "10.0.16.0/28"]
+    cidr_blocks = ["${chomp(data.http.myip.body)}/32", "10.0.0.16/28"]
   }
 
   egress {
@@ -140,20 +156,12 @@ resource "aws_security_group" "ntvpc_bastserver_sg" {
 
 }
 
-# EC2 Instance in Private Subnet | No Public IP 
-#resource "aws_instance" "ntwebsvr" {
-#  ami                         = data.aws_ami.amazon-linux-2.id
-#  instance_type               = "t2.micro"
-#  subnet_id                   = aws_subnet.ntvpc_private_sn.id
-#  associate_public_ip_address = false
-#  vpc_security_group_ids      = [aws_security_group.ntvpc_webserver_sg.id]
-#  key_name                    = var.key_name
-#}
-
-# Create Load Balancer | public subnet
-# A listener is a process that checks for connection requests. It is configured with a protocol and a port for front-end (client to load balancer) connections and a protocol and a port for back-end (load balancer to instance) connections.
+# Create Load Balancer | Public subnet
+# Listener process to check for connection requests.
+# Port for the front-end is the client to load balancer connections  
+# Port for back-end is the load balancer to instance connections
 resource "aws_elb" "ntlb" {
-  name            = "classic-load-balancer"
+  name            = "nt-load-balancer"
   subnets         = [aws_subnet.ntvpc_public_sn.id]
   security_groups = [aws_security_group.ntvpc_webserver_sg.id]
 
@@ -177,56 +185,22 @@ resource "aws_elb" "ntlb" {
     healthy_threshold   = 10
     unhealthy_threshold = 2
     timeout             = 5
-    target              = "TCP:22"
+    target              = "TCP:80"
     interval            = 30
   }
+
+  tags = {
+    Name = "nt-elb01"
+  }
 }
-## Provision Remote EC2 Instance
-# Connect to Private EC2 Instance as ec2-user using Elastic Load Balancer DNS name backed by Public IP
-# Provision remote EC2 Instance as root user to start HTTP Server which will be used for static Web App 
-# Ensure to use correct Private Key from associated key_name of EC2 instance
-#resource "null_resource" "ntprov_ec2" {
-#  provisioner "file" {
-#    source      = "/tmp/terraform_iac/ec2Key.pem"
-#    destination = "/home/ec2-user/ec2Key.pem"
 #
-#    connection {
-#    type     = "ssh"
-#    user     = "ec2-user"
-#    private_key = tls_private_key.private_key.private_key_pem
-#    host     = aws_elb.ntlb.dns_name
-#    }
-#  }
-#
-#  depends_on = [aws_nat_gateway.ntvpc_public_sn_ng, aws_elb.ntlb, aws_instance.ntwebsvr]
-#}
-
-# Connect to private EC2 instance and provision Web Server to use custom HTML code 
-#resource "null_resource" "ntprov_ec2_websvr" {
-#  connection {
-#    type        = "ssh"
-#    user        = "ec2-user"
-#    private_key = tls_private_key.private_key.private_key_pem
-#    host        = aws_elb.ntlb.dns_name
-#  }
-
-#  provisioner "remote-exec" {
-#    inline = [
-#      "sudo chown -R ec2-user /var/www/html",
-#      "sudo chmod -R 755 /var/www/html",
-#      "sudo su -c \"echo \\\"<html><body bgcolor='red'><h1>My static page is working w00t!!</h2></body></html>\\\"\" >  /var/www/html/index.html"
-#    ]
-#  }
-
-#  depends_on = [null_resource.ntprov_ec2, aws_elb.ntlb]
-#}
-
-# Validate our code is running fine on remote instance,Open web page on local client host 
+## Testing....
+# Validation on remote instance by opening the webpage on local client host 
 #resource "null_resource" "ntcurl_webpage" {
 #  provisioner "local-exec" {
 #    command     = "curl http://${aws_elb.ntlb.dns_name}"
 #  }
 #
-#  depends_on = [null_resource.ntprov_ec2, null_resource.ntprov_ec2_websvr, aws_elb.ntlb]
+#  depends_on = [aws_elb.ntlb]
 #}
 
