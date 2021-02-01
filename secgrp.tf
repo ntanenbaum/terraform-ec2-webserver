@@ -11,8 +11,7 @@ resource "aws_security_group" "ntsecgrpbh" {
     from_port   = 22
     to_port     = 22
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+    cidr_blocks = ["${chomp(data.http.myip.body)}/32", "10.0.0.0/24", "10.0.1.0/24"]
   }
 
   egress {
@@ -20,7 +19,6 @@ resource "aws_security_group" "ntsecgrpbh" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
 
   tags = {
@@ -42,16 +40,7 @@ resource "aws_security_group" "ntsecgrpwebsvr" {
     from_port   = 80
     to_port     = 80
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
-  }
-  ingress {
-    description = "Allow TCP HTTPS"
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
   ingress {
     description = "Allow SSH"
@@ -66,7 +55,6 @@ resource "aws_security_group" "ntsecgrpwebsvr" {
     to_port     = 0
     protocol    = "-1"
     cidr_blocks = ["0.0.0.0/0"]
-    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
 
   tags = {
