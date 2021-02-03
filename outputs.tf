@@ -1,16 +1,7 @@
-output "websvr_eip" {
-  value = aws_eip.ntelasticip.public_ip
+output "lb_dns_name" {
+  description = "Show load balancer DNS name"
+  value = aws_elb.ntlb.dns_name
 }
-
-output "websvr_private_ip" {
-  description = "List private IP address assigned to the webserver instance"
-  value       = aws_instance.ntwebsvr.*.private_ip
-}
-
-#output "websvr_public_ip" {
-#  description = "List public IP address assigned to the webserver instance"
-#  value       = aws_instance.ntwebsvr.*.public_ip
-#}
 
 output "bast_public_ip" {
   description = "List public IP address assigned to the bastion instance"
@@ -20,6 +11,11 @@ output "bast_public_ip" {
 output "bast_private_ip" {
   description = "List private IP address assigned to the bastion instance"
   value       = aws_instance.ntbastioninstance.*.private_ip
+}
+
+output "websvr_private_ip" {
+  description = "List private IP address assigned to the webserver instance"
+  value       = aws_instance.ntwebsvr.*.private_ip
 }
 
 output "amazon2_ami_id" {
