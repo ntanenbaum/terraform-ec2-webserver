@@ -3,12 +3,6 @@ terraform-ec2-webserver
 Deploys a Web Server (private subnet), hosting a single static page through
 a public ELB as well as a Bastion Server (public subnet) 
 
-Branches
---------
-main -> Public Subnets for basic web server
-
-challenge -> Public|Private Subnets, NAT for basic web server (in progress...)
-
 Diagram
 -------
 ![alt text](images/webserver_elb.png)
