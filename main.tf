@@ -111,8 +111,9 @@ resource "aws_security_group" "ntvpc_webserver_sg" {
     from_port = 80
     to_port   = 80
     protocol  = "tcp"
+    security_groups = [aws_security_group.ntvpc_elb_sg.id]
     #cidr_blocks = ["0.0.0.0/0"]
-    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
   }
 
   egress {
@@ -156,6 +157,38 @@ resource "aws_security_group" "ntvpc_bastserver_sg" {
 
 }
 
+# Create Security Group enable outbound elb to ec2 communication
+resource "aws_security_group" "ntvpc_elb_sg" {
+  depends_on = [aws_vpc.ntvpc]
+
+  name        = "ntvpc_elb_sg"
+  #name        = "secgrp elb"
+  description = "elb to ec2 secgrp"
+  vpc_id      = aws_vpc.ntvpc.id
+
+  ingress {
+    from_port   = "0"
+    to_port     = "0"
+    protocol    = "-1"
+    #cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["10.0.0.0/26"]
+    cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+
+  egress {
+    from_port   = 8080
+    to_port     = 8080
+    protocol    = "tcp"
+    cidr_blocks = ["0.0.0.0/0"]
+    #cidr_blocks = ["${chomp(data.http.myip.body)}/32"]
+  }
+
+  tags = {
+    Name = "nt_elb_secgrp"
+  }
+
+}
+
 # Create Load Balancer | Public subnet
 # Listener process to check for connection requests.
 # Port for the front-end is the client to load balancer connections  
@@ -163,7 +196,8 @@ resource "aws_security_group" "ntvpc_bastserver_sg" {
 resource "aws_elb" "ntlb" {
   name            = "nt-load-balancer"
   subnets         = [aws_subnet.ntvpc_public_sn.id]
-  security_groups = [aws_security_group.ntvpc_webserver_sg.id]
+  #security_groups = [aws_security_group.ntvpc_webserver_sg.id]
+  security_groups = ["${aws_security_group.ntvpc_webserver_sg.id}","${aws_security_group.ntvpc_elb_sg.id}"]
 
   listener {
     instance_port     = 22
